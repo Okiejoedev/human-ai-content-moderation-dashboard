@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContentPost {
+  id                String   @id @default(cuid())
+  content           String
+  authorName        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  aiAnalysis        AiAnalysis?
+  humanReview       HumanReview?
+
+  @@map("content_posts")
+}
+
+model AiAnalysis {
+  id              String   @id @default(cuid())
+  postId          String   @unique
+  predictedLabel   String   // hate_speech, harassment, violence, safe
+  confidence       Float
+  explanation     String   // Keywords or explanation
+  flagged         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  post            ContentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analyses")
+}
+
+model HumanReview {
+  id              String   @id @default(cuid())
+  postId          String   @unique
+  action          String   // approve, remove, override
+  finalLabel      String?  // Final classification after human review
+  overrideReason  String?
+  reviewerName    String?
+  reviewedAt      DateTime @default(now())
+
+  post            ContentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("human_reviews")
+}
+
+model EthicsMetric {
+  id                String   @id @default(cuid())
+  metricType        String   // false_positive_rate, false_negative_rate, override_frequency, misclassified_categories
+  value             Float
+  categoryName      String?  // For misclassified categories
+  calculatedAt      DateTime @default(now())
+
+  @@map("ethics_metrics")
+}
